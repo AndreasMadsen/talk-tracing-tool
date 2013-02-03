@@ -429,6 +429,7 @@ Module.prototype.require = function (path) {
         <!-- Putting it all together -->
         <section>
           <h2>Putting it all together</h2>
+          <section>
 <pre style="font-size: 50%;"><code class="javascript">var hook = require('async-hook'); // monkey patch everything 
 var chain = require('stack-chain'); // Error.prepearStackTrace wrapper
 
@@ -456,6 +457,7 @@ chain.filter.attach(function (error, frames) {
     return (callSite.getFileName() === module.filename);
   });
 });</code></pre>
+          </section>
         </section>
 
         <!-- Use it for good -->
