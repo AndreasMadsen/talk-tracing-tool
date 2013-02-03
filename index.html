@@ -1,0 +1,544 @@
+<!doctype html>
+<html lang="en">
+
+  <head>
+		<meta charset="utf-8">
+
+		<title>Node.js - Error handling</title>
+
+		<meta name="description" content="A presentation on error handling in node.js">
+		<meta name="author" content="Andreas Madsen">
+
+		<meta name="apple-mobile-web-app-capable" content="yes" />
+		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+		<link href='http://fonts.googleapis.com/css?family=Lato:400,700,400italic,700italic' rel='stylesheet' type='text/css'>
+
+		<link rel="stylesheet" href="css/reveal.css">
+		<link rel="stylesheet" href="css/theme/default.css" id="theme">
+
+		<!-- For syntax highlighting -->
+		<link rel="stylesheet" href="lib/css/zenburn.css">
+
+		<!-- If the query includes 'print-pdf', use the PDF print sheet -->
+		<script>
+			document.write( '<link rel="stylesheet" href="css/print/' + ( window.location.search.match( /print-pdf/gi ) ? 'pdf' : 'paper' ) + '.css" type="text/css" media="print">' );
+		</script>
+  
+    <style type="text/css" media="screen">
+        #editor1 {
+            position: relative;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            left: 0;
+            height: 200px;
+            width: 91%;
+            margin: 0 auto;
+            text-align: left;
+            font-family: monospace;
+            font-size: 12pt;
+            line-height: 12pt;
+        }
+        
+        .editorArea {
+            position: relative;
+        }
+        
+        .editorArea button {
+          font-size: 20px;
+          width: 200px;
+        }
+        
+        .editorArea pre {
+          font-size: 12pt;
+          line-height: 12pt;
+          background-color: rgb(63, 63, 63);
+          color: rgba(255,255,255, 0.8);
+          height: 200px;
+          overflow: auto;
+          padding: 5px;
+        }
+    </style>
+    
+    <script src="lib/ace/src-min/ace.js" type="text/javascript" charset="utf-8"></script>
+    <script src="lib/util.js" type="text/javascript" charset="utf-8"></script>
+		<!--[if lt IE 9]>
+		<script src="lib/js/html5shiv.js"></script>
+		<![endif]-->
+	</head>
+
+	<body>
+
+		<div class="reveal">
+
+			<!-- Any section element inside of this container is displayed as a slide -->
+			<div class="slides">
+
+        <!-- TITLE -->
+  			<section>
+          <section>
+            <h2 style="margin-top: 180px; line-height: 65px;">
+              <span class="green">Writing</span>
+              <span class="gray">an</span>
+              <span class="green">asynchronous</span>
+              <span class="dark">traceing</span>
+              <span class="gray">tool</span>
+            </h2>
+          </section>
+        </section>
+        
+        <!-- audience check -->
+    		<section>
+          <h2>You</h2>
+          <section>
+            <ul style="line-height: 200%;">
+              <li>Published npm module</li>
+              <li>Read nodecore code</li>
+              <li>Read v8 code</li>
+            </ul>
+          </section>
+        </section>
+
+        <!-- Who Am I -->
+        <section>
+          <h2>Who Am I</h2>
+          <section>
+            <h4 class="green">Andreas Madsen</h4>
+            <h3>Node.js core person</h3>
+            <p class="green">
+              <strong class="dark">#9</strong> <span class="gray">– 5353 line changes</span><br>
+                <strong style="font-size: 120%;">Cluster</strong>,
+                <span style="font-size: 90%;">Child Process</span>,
+                <span style="font-size: 90%;">Domain</span>,
+                <span style="font-size: 80%;white-space: nowrap;">Stream v2</span>
+            </p>
+          </section>
+          <section>
+            <h3>Besides that</h3>
+            <p style="font-size: 90%;">
+              Study: <span class="gray">DTU - Mathematics and Technology</span><br>
+              Work: <span class="gray">Admazely</span>
+            </p>
+          </section>
+        </section>
+        
+        <!-- The problem -->
+        <section>
+          <h2>The problem</h2>
+          <section>
+            <span class="gray">Code</span>
+<pre style="font-size: 50%;"><code class="javascript">function failure() {
+  throw new Error('simple error'); 
+}
+
+setTimeout(failure, Math.random() * 1000);
+
+setTimeout(failure, Math.random() * 1000);
+</code></pre>
+<span class="gray">Result</span>
+<pre style="font-size: 50%;"><code class="javascript">/example/code.js:2
+  throw new Error('simple error'); 
+        ^
+Error: simple error
+    at failure [as _onTimeout] (/example/code.js:2:9)
+    at Timer.listOnTimeout [as ontimeout] (timers.js:110:15)
+    at process._makeCallback (node.js:306:20)
+</code></pre>
+          </section>
+          <section>
+<span class="gray">In the real world</span>
+<pre style="font-size: 50%;"><code class="javascript">events.js:71
+        throw arguments[1]; // Unhandled 'error' event
+                       ^
+
+Error: connect ECONNREFUSED
+    at errnoException (net.js:770:11)
+    at Object.afterConnect [as oncomplete] (net.js:761:19)
+</code></pre>
+<span class="gray">If we could just get this:</span>
+<pre style="font-size: 50%;"><code class="javascript">events.js:71
+        throw arguments[1]; // Unhandled 'error' event
+                       ^
+Error: connect ECONNREFUSED
+    at errnoException (net.js:770:11)
+    at Object.afterConnect [as oncomplete] (net.js:761:19)
+    at ClientRequest.onSocket (http.js:1520:12)
+    at new ClientRequest (http.js:1216:16)
+    at Object.exports.request (http.js:1607:10)
+    at Worker.exec (/example/file.js:121:37) // Important
+</code></pre>
+          </section>
+        </section>
+        
+        <!-- Minimal solutions -->        
+        <section>
+          <h2>Minimal solutions</h2>
+            <section>
+<pre style="font-size: 50%;"><code class="javascript">function failure() {
+  throw new Error('simple error'); 
+}
+
+function setTimeout(fn, time /*, and more */) {
+  // Create stack trace and remove first line
+  var trackingStack = (new Error()).stack.slice('Error'.length);
+  global.setTimeout(function () {
+    try { fn(); } catch (err) {
+      // Overwrite err.stack by adding trackingStack
+      err.stack += trackingStack;
+      throw err;
+    }
+  }, time);
+}
+
+setTimeout(failure, Math.random() * 1000);
+
+setTimeout(failure, Math.random() * 1000);
+</code></pre>
+          </section>
+          <section>
+<pre style="font-size: 50%;"><code class="javascript">/example/code.js:12
+      throw err;
+            ^
+Error: simple error
+    at failure (/example/code.js:2:9)
+    at null._onTimeout (/example/code.js:9:11)
+    at Timer.listOnTimeout [as ontimeout] (timers.js:110:15)
+    at process._makeCallback (node.js:306:20)
+    at setTimeout (/example/code.js:7:24)
+    at Object.&lt;anonymous&gt; (/example/code.js:19:1) // Important
+</code></pre>
+<pre style="font-size: 50%;"><code class="javascript">/example/code.js:12
+      throw err;
+            ^
+Error: simple error
+    at failure /example/code.js:2:9)
+    at null._onTimeout (/example/code.js:9:11)
+    at Timer.listOnTimeout [as ontimeout] (timers.js:110:15)
+    at process._makeCallback (node.js:306:20)
+    at setTimeout (/example/code.js:7:24)
+    at Object.&lt;anonymous&gt; (/example/code.js:17:1) // Important
+</code></pre>
+          </section>
+        </section>
+        
+        <!-- Existing solutions -->
+        <section>
+          <h2>Existing solutions</h2>
+          <section>
+            <ul>
+              <li><span class="gray">npm install</span> trycatch</li>
+              <li><span class="gray">npm install</span> long-stack-traces</li>
+              <li><span class="gray">npm install</span> longjohn</li>
+              <li>and more <span class="gray">...</span></li>
+            </ul>
+          </section>
+          <section>
+            <h4 class="green" style="margin: 0;">Missing generic overwrite</h4><br>
+            <span class="gray">Try catch</span>
+<pre style="font-size: 50%;"><code class="javascript">var original = process.nextTick;
+process.nextTick = function () {
+  try {
+    original.apply(this, arguments); // Call must throw
+  } catch (err) {
+    throw internal.wrapLogic(err); // Changed throw origin
+  }
+};</code></pre>
+<span class="gray">Called wrapper</span>
+<pre style="font-size: 50%;"><code class="javascript">fs.readFile('./file.js', function (err) {
+  if (err) throw external.wrapLogic(err); // Require origin knowledge
+});</code></pre>
+          </section>
+          <section>
+            <h4 class="green" style="margin: 0;">Minimal wrapping</h4><br>
+<pre style="font-size: 50%;"><code class="javascript">wrap(process, 'nextTick');
+wrap(global, 'setTimeout');
+wrap(global, 'setInterval');
+Object.keys(fs).forEach(function(methodName) {
+  wrap(fs, methodName);
+});
+// what about: net, tls, http, https, dgram, dns ...
+</code></pre>
+          </section>
+        </section>
+
+        <!-- What to do -->
+        <section>
+          <h2>Need to solve</h2>
+          <section>
+            <ul style="line-height: 200%;">
+              <li>V8 stack trace hook</li>
+              <li>Complete wrap logic</li>
+              <li>On demand wrap logic</li>
+            </ul>
+          </section>
+        </section>
+
+        <!-- V8 stack trace hook -->
+        <section>
+          <h2>v8 stack trace API</h2>
+          <section>
+            <a href="http://code.google.com/p/v8/wiki/JavaScriptStackTraceApi">code.google.com/p/v8/wiki/JavaScriptStackTraceApi</a><br><br>
+            <ul>
+              <li>Error.stackTraceLimit</li>
+              <li>Error.prepareStackTrace</li>
+            </ul>
+          </section>
+          <section>
+<div class="editorArea">
+<div id="editor1">Error.prepareStackTrace = function (error, stack) {
+  return stack;
+};
+
+var structureStack = (new Error('hi')).stack;
+
+structureStack.forEach(function (callSite) {
+  print(callSite.getFileName() + ':' + callSite.getLineNumber());
+});
+
+delete Error.prepareStackTrace;</div>
+<button id="run1">eval(code)</button>
+<pre id="output1"></pre>
+<script>
+  (function () {
+    var editor = ace.edit("editor1");
+    editor.setTheme("ace/theme/monokai");
+    editor.getSession().setMode("ace/mode/javascript");
+    editor.setShowFoldWidgets(false);
+    editor.setShowPrintMargin(false);
+
+    var run = document.getElementById('run1');
+    var pre = document.getElementById('output1');
+    run.onclick = function () {
+      pre.innerHTML = '';
+      try {
+        var fn = eval('(function (print) {' + editor.getValue() + '});');
+        fn(function (obj) {
+          try {
+            pre.innerHTML += util.inspect(obj).replace(window.location.href, 'index.html') + '\n';
+          } catch (e) {
+            pre.innerHTML = e.stack;
+            throw e;
+          }
+        });
+      } catch (e) {
+        pre.innerHTML = e.stack;
+        throw e;
+      }
+    };
+  })();
+</script>
+</div>
+          </section>
+          <section>
+            <p style="font-size: 100%;">
+            <a href="https://github.com/v8/v8/blob/0b232396903e58caa715b4c4bf43c83e8b34def8/src/messages.js">v8: /src/messages.js</a><br>
+              <ul style="font-size: 70%;">
+                <li>captureStackTrace</li>
+                <li>prepareStackTrace</li>
+                <li>FormatStackTrace</li>
+              </ul>
+            </p>
+          </section>
+        </section>
+
+        <!-- Monkey-patch everything -->
+        <section>
+          <h2>Monkey patch everything</h2>
+          <section>
+            <p>
+              <span class="gray">First thought:</span>
+              <span class="dark">Manually</span>
+              <span class="green">writen</span><br>
+              <span class="green">list</span>
+              <span class="gray">of</span>
+              <span class="dark">modules</span>
+              <span class="gray">and their</span><br>
+              <span class="dark">methods</span>
+            </p>
+<pre style="font-size: 50%;"><code class="javascript">[
+  "timer": ["setTimeout", "setInterval"],
+  "fs": ["readFile", "writeFile"],
+  "dns": ["lookup", "resolve"]
+]</code></pre>
+            <p>
+              <span class="gray">hard to maintain</span>
+            </p>
+          </section>
+          <section>
+            <p>
+              <strong class="dark">JSON</strong>
+              <span class="green">version</span>
+              <span class="gray">of</span><br>
+              <span class="gray">the</span>
+              <span class="green">node core</span>
+              <span class="gray">documentation</span><br>
+              <span class="gray">contains</span>
+              <span class="green">all</span>
+              <span class="gray">the</span>
+              <span class="dark">information</span><br><br>
+              <a href="http://nodejs.org/api/all.json">nodejs.org/api/all.json</a>
+            </p>
+        </section>
+        </section>
+
+        <!-- Lazy monkey patch -->
+        <section>
+          <h2>Lazy monkey patching</h2>
+          <section>
+            <p>
+            <span class="gray">to</span>
+            <code class="dark">require</code>
+            <span class="green">all modules</span>
+            <span class="gray">is</span>
+            <span class="dark">expensive</span>
+            <span class="gray">and</span>
+            <span class="dark">noisy</span><br><br>
+            </p>
+            <p class="fragment">
+              <code class="dark">require</code>
+              <span class="gray">is a function and</span>
+              <span class="green">can't</span>
+              <span class="gray">be</span>
+              <span class="green">patched</span>
+              <code class="dark">Module.<wbr>prototype.<wbr>require</code>
+              <span class="gray">can!</span>
+              <br><br>
+              <a href="https://github.com/joyent/node/blob/master/src/node.js">/node/src/node.js</a>
+              <span class="gray">and</span>
+              <a href="https://github.com/joyent/node/blob/master/lib/module.js">/node/lib/module.js</a>
+            </p>
+          </section>
+          <section>
+<pre style="font-size: 50%;"><code class="javascript">var Module = require('module');
+
+var original = Module.prototype.require;
+
+Module.prototype.require = function (path) {
+  var module = original(path);
+  
+  if (isCoreModule(path)) {
+    patchAll(module, path);
+  }
+  
+  return module;
+};</code></pre>
+          </section>
+        </section>
+
+        <!-- Putting it all together -->
+        <section>
+          <h2>Putting it all together</h2>
+<pre style="font-size: 50%;"><code class="javascript">var hook = require('async-hook'); // monkey patch everything 
+var chain = require('stack-chain'); // Error.prepearStackTrace wrapper
+
+var currentStack = null;
+
+hook.all.attach(function(name, callback) {
+  // Async function executed
+  var stack = chain.getCallSiteArray();
+  stack.push.apply(stack, currentStack);
+
+  return function () {
+    // this is executed in another event loop
+    currentStack = stack;
+    return callback.apply(this, arguments);
+  };
+});
+  
+chain.extend.attach(function (error, frames) {
+  frames.push.apply(frames, currentStack);
+  return frames;
+});
+
+chain.filter.attach(function (error, frames) {
+  return frames.filter(function (callSite) {
+    return (callSite.getFileName() === module.filename);
+  });
+});</code></pre>
+        </section>
+
+        <!-- Use it for good -->
+        <section>
+            <h2 style="margin-top: 180px; line-height: 65px;">
+              <span class="gray">Use</span>
+              <span class="gray">this</span>
+              <span class="dark">knowledge</span>
+              <span class="gray">for</span>
+              <span class="green">good</span>
+              <span class="gray">and</span>
+              <span class="dark">only</span>
+              <span class="green">good</span>
+              <span class="gray">purposes</span>
+            </h2>
+        </section>
+        
+        <!-- Question -->
+        <section>
+            <p style="margin-top: 180px; line-height: 50px; font-size: 90%;">
+              <code>
+                <span class="green">with</span><span style="color: #35495E">(</span><span style="color: #3F90A0">this</span><span style="color: #35495E">)</span>
+                <span class="green">void</span> <span class="green">eval</span><span style="color: #35495E">(</span><span style="color: #A86161">'--> I welcome you to \r throw "any question at me"'</span><span style="color: #35495E">)</span></code>
+            </p>
+        </section>
+
+        <!-- Get in touch -->
+        <section>
+          <h2>Get in touch</h2>
+          <section>
+            <h6 class="gray"><img src="img/github.svg">/AndreasMadsen</h6>
+            <h6 class="gray"><img src="img/bird.svg">@andreas_madsen</h6>
+          </section>
+        </section>
+
+        <!-- Credits -->
+        <section>
+          <h2>Credits</h2>
+          <section>
+            <blockquote class="small">
+              <br>
+              <a href="http://thenounproject.com/noun/bird/#icon-No5935" target="_blank">Bird</a>
+                designed by <a href="http://thenounproject.com/Nozzman" target="_blank">Bram van Rijen</a>
+              <br>
+              <span class="gray">– from</span> The Noun Project
+            </blockquote>
+          </section>
+        </section>
+
+			</div>
+
+		</div>
+
+		<script src="lib/js/head.min.js"></script>
+		<script src="js/reveal.min.js"></script>
+		<script>
+
+			// Full list of configuration options available here:
+			// https://github.com/hakimel/reveal.js#configuration
+			Reveal.initialize({
+				controls: true,
+				progress: true,
+				history: true,
+        keyboard: true,
+        overview: true,
+        rollingLinks: false,
+        mouseWheel: false,
+
+				theme: 'serif', // available themes are in /css/theme
+				transition: Reveal.getQueryHash().transition || 'default', // default/cube/page/concave/zoom/linear/none
+
+				// Optional libraries used to extend on reveal.js
+				dependencies: [
+					{ src: 'lib/js/highlight.js', async: true, callback: function() { window.hljs.initHighlightingOnLoad(); } },
+					{ src: 'lib/js/classList.js', condition: function() { return !document.body.classList; } },
+					{ src: 'lib/js/showdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+					{ src: 'lib/js/data-markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+					{ src: 'plugin/zoom-js/zoom.js', condition: function() { return !!document.body.classList; } },
+					{ src: '/socket.io/socket.io.js', async: true, condition: function() { return window.location.host === 'localhost:1947'; } }
+				]
+			});
+
+		</script>
+
+	</body>
+</html>
