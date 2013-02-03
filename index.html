@@ -102,10 +102,10 @@
 
         <!-- Who Am I -->
         <section>
-          <h2>Who Am I</h2>
+          <h2>Who Am I?</h2>
           <section>
             <h4 class="green">Andreas Madsen</h4>
-            <h3>Node.js core person</h3>
+            <h3>Node.js core developer</h3>
             <p class="green">
               <strong class="dark">#9</strong> <span class="gray">– 5353 line changes</span><br>
                 <strong style="font-size: 120%;">Cluster</strong>,
@@ -118,7 +118,7 @@
             <h3>Besides that</h3>
             <p style="font-size: 90%;">
               Study: <span class="gray">DTU - Mathematics and Technology</span><br>
-              Work: <span class="gray">Admazely</span>
+              Work: <span class="gray">Admazely ApS</span>
             </p>
           </section>
         </section>
@@ -147,11 +147,10 @@ Error: simple error
 </code></pre>
           </section>
           <section>
-<span class="gray">In the real world</span>
+<span class="gray">In practice</span>
 <pre style="font-size: 50%;"><code class="javascript">events.js:71
         throw arguments[1]; // Unhandled 'error' event
                        ^
-
 Error: connect ECONNREFUSED
     at errnoException (net.js:770:11)
     at Object.afterConnect [as oncomplete] (net.js:761:19)
@@ -172,7 +171,7 @@ Error: connect ECONNREFUSED
         
         <!-- Minimal solutions -->        
         <section>
-          <h2>Minimal solutions</h2>
+          <h2>Minimal solution</h2>
             <section>
 <pre style="font-size: 50%;"><code class="javascript">function failure() {
   throw new Error('simple error'); 
@@ -348,7 +347,7 @@ delete Error.prepareStackTrace;</div>
             <p>
               <span class="gray">First thought:</span>
               <span class="dark">Manually</span>
-              <span class="green">writen</span><br>
+              <span class="green">written</span><br>
               <span class="green">list</span>
               <span class="gray">of</span>
               <span class="dark">modules</span>
@@ -386,13 +385,13 @@ delete Error.prepareStackTrace;</div>
           <h2>Lazy monkey patching</h2>
           <section>
             <p>
-            <span class="gray">to</span>
+            <span class="gray">To</span>
             <code class="dark">require</code>
             <span class="green">all modules</span>
             <span class="gray">is</span>
             <span class="dark">expensive</span>
             <span class="gray">and</span>
-            <span class="dark">noisy</span><br><br>
+            <span class="dark">noisy.</span><br><br>
             </p>
             <p class="fragment">
               <code class="dark">require</code>
