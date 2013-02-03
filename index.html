@@ -2,7 +2,7 @@
 <html lang="en">
 
   <head>
-		<meta charset="utf-8">
+  	<meta charset="utf-8">
 
 		<title>Writing an asynchronous traceing tool</title>
 
@@ -163,7 +163,6 @@ Error: connect ECONNREFUSED
 Error: connect ECONNREFUSED
     at errnoException (net.js:770:11)
     at Object.afterConnect [as oncomplete] (net.js:761:19)
-    at ClientRequest.onSocket (http.js:1520:12)
     at new ClientRequest (http.js:1216:16)
     at Object.exports.request (http.js:1607:10)
     at Worker.exec (/example/file.js:121:37) // Important
@@ -506,6 +505,7 @@ chain.filter.attach(function (error, frames) {
         overview: true,
         rollingLinks: false,
         mouseWheel: false,
+        center: false,
 
 				theme: 'serif', // available themes are in /css/theme
 				transition: Reveal.getQueryHash().transition || 'default', // default/cube/page/concave/zoom/linear/none
