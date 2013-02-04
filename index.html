@@ -24,7 +24,7 @@
 		<script>
 			document.write( '<link rel="stylesheet" href="css/print/' + ( window.location.search.match( /print-pdf/gi ) ? 'pdf' : 'paper' ) + '.css" type="text/css" media="print">' );
 		</script>
-  
+
     <style type="text/css" media="screen">
         #editor1 {
             position: relative;
@@ -40,16 +40,16 @@
             font-size: 12pt;
             line-height: 12pt;
         }
-        
+
         .editorArea {
             position: relative;
         }
-        
+
         .editorArea button {
           font-size: 20px;
           width: 200px;
         }
-        
+
         .editorArea pre {
           font-size: 12pt;
           line-height: 12pt;
@@ -60,7 +60,7 @@
           padding: 5px;
         }
     </style>
-    
+
     <script src="lib/ace/src-min/ace.js" type="text/javascript" charset="utf-8"></script>
     <script src="lib/util.js" type="text/javascript" charset="utf-8"></script>
 		<!--[if lt IE 9]>
@@ -87,7 +87,7 @@
             </h2>
           </section>
         </section>
-        
+
         <!-- audience check -->
     		<section>
           <h2>You</h2>
@@ -102,7 +102,7 @@
 
         <!-- Who Am I -->
         <section>
-          <h2>Who Am I?</h2>
+          <h2>Who Am I</h2>
           <section>
             <h4 class="green">Andreas Madsen</h4>
             <h3>Node.js core developer</h3>
@@ -122,14 +122,14 @@
             </p>
           </section>
         </section>
-        
+
         <!-- The problem -->
         <section>
           <h2>The problem</h2>
           <section>
             <span class="gray">Code</span>
 <pre style="font-size: 50%;"><code class="javascript">function failure() {
-  throw new Error('simple error'); 
+  throw new Error('simple error');
 }
 
 setTimeout(failure, Math.random() * 1000);
@@ -138,7 +138,7 @@ setTimeout(failure, Math.random() * 1000);
 </code></pre>
 <span class="gray">Result</span>
 <pre style="font-size: 50%;"><code class="javascript">/example/code.js:2
-  throw new Error('simple error'); 
+  throw new Error('simple error');
         ^
 Error: simple error
     at failure [as _onTimeout] (/example/code.js:2:9)
@@ -155,7 +155,7 @@ Error: connect ECONNREFUSED
     at errnoException (net.js:770:11)
     at Object.afterConnect [as oncomplete] (net.js:761:19)
 </code></pre>
-<span class="gray">If we could just get this:</span>
+<span class="gray">If we could just get this</span>
 <pre style="font-size: 50%;"><code class="javascript">events.js:71
         throw arguments[1]; // Unhandled 'error' event
                        ^
@@ -168,20 +168,20 @@ Error: connect ECONNREFUSED
 </code></pre>
           </section>
         </section>
-        
-        <!-- Minimal solutions -->        
+
+        <!-- Minimal solutions -->
         <section>
           <h2>Minimal solution</h2>
             <section>
 <pre style="font-size: 50%;"><code class="javascript">function failure() {
-  throw new Error('simple error'); 
+  throw new Error('simple error');
 }
 
-function setTimeout(fn, time /*, and more */) {
+function setTimeout(callback, time /*, and more */) {
   // Create stack trace and remove first line
   var trackingStack = (new Error()).stack.slice('Error'.length);
   global.setTimeout(function () {
-    try { fn(); } catch (err) {
+    try { callback(); } catch (err) {
       // Overwrite err.stack by adding trackingStack
       err.stack += trackingStack;
       throw err;
@@ -219,7 +219,7 @@ Error: simple error
 </code></pre>
           </section>
         </section>
-        
+
         <!-- Existing solutions -->
         <section>
           <h2>Existing solutions</h2>
@@ -414,11 +414,11 @@ var original = Module.prototype.require;
 
 Module.prototype.require = function (path) {
   var module = original(path);
-  
+
   if (isCoreModule(path)) {
     patchAll(module, path);
   }
-  
+
   return module;
 };</code></pre>
           </section>
@@ -428,7 +428,7 @@ Module.prototype.require = function (path) {
         <section>
           <h2>Putting it all together</h2>
           <section>
-<pre style="font-size: 50%;"><code class="javascript">var hook = require('async-hook'); // monkey patch everything 
+<pre style="font-size: 50%;"><code class="javascript">var hook = require('async-hook'); // monkey patch everything
 var chain = require('stack-chain'); // Error.prepearStackTrace wrapper
 
 var currentStack = null;
@@ -439,12 +439,12 @@ hook.all.attach(function(name, callback) {
   stack.push.apply(stack, currentStack);
 
   return function () {
-    // this is executed in another event loop
+    // this is executed in another tick
     currentStack = stack;
     return callback.apply(this, arguments);
   };
 });
-  
+
 chain.extend.attach(function (error, frames) {
   frames.push.apply(frames, currentStack);
   return frames;
@@ -472,7 +472,7 @@ chain.filter.attach(function (error, frames) {
               <span class="gray">purposes</span>
             </h2>
         </section>
-        
+
         <!-- Question -->
         <section>
             <p style="margin-top: 150px; line-height: 50px; font-size: 95%;">
