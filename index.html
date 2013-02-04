@@ -284,17 +284,15 @@ Object.keys(fs).forEach(function(methodName) {
           </section>
           <section>
 <div class="editorArea">
-<div id="editor1">Error.prepareStackTrace = function (error, stack) {
-  return stack;
+<div id="editor1">Error.prepareStackTrace = function (error, structureStack) {
+  var stack = structureStack.map(function (callSite) {
+    return callSite.getFileName() + ':' + callSite.getLineNumber();
+  });
+  
+  return stack.join('\n');
 };
 
-var structureStack = (new Error('hi')).stack;
-
-structureStack.forEach(function (callSite) {
-  print(callSite.getFileName() + ':' + callSite.getLineNumber());
-});
-
-delete Error.prepareStackTrace;</div>
+print(new Error('Example').stack);</div>
 <button id="run1">eval(code)</button>
 <pre id="output1"></pre>
 <script>
@@ -311,9 +309,9 @@ delete Error.prepareStackTrace;</div>
       pre.innerHTML = '';
       try {
         var fn = eval('(function (print) {' + editor.getValue() + '});');
-        fn(function (obj) {
+        fn(function (result) {
           try {
-            pre.innerHTML += util.inspect(obj).replace(window.location.href, 'index.html') + '\n';
+            pre.innerHTML += result.replace(new RegExp(window.location.href, 'g'), 'index.html') + '\n';
           } catch (e) {
             pre.innerHTML = e.stack;
             throw e;
@@ -322,6 +320,8 @@ delete Error.prepareStackTrace;</div>
       } catch (e) {
         pre.innerHTML = e.stack;
         throw e;
+      } finally {
+        delete Error.prepareStackTrace;
       }
     };
   })();
