@@ -288,7 +288,7 @@ Object.keys(fs).forEach(function(methodName) {
   var stack = structureStack.map(function (callSite) {
     return callSite.getFileName() + ':' + callSite.getLineNumber();
   });
-  
+
   return stack.join('\n');
 };
 
@@ -431,22 +431,22 @@ Module.prototype.require = function (path) {
 <pre style="font-size: 50%;"><code class="javascript">var hook = require('async-hook'); // monkey patch everything
 var chain = require('stack-chain'); // Error.prepearStackTrace wrapper
 
-var currentStack = null;
+var previousStack = null;
 
 hook.all.attach(function(name, callback) {
   // Async function executed
   var stack = chain.getCallSiteArray();
-  stack.push.apply(stack, currentStack);
+  stack.push.apply(stack, previousStack);
 
   return function () {
     // this is executed in another tick
-    currentStack = stack;
+    previousStack = stack;
     return callback.apply(this, arguments);
   };
 });
 
 chain.extend.attach(function (error, frames) {
-  frames.push.apply(frames, currentStack);
+  frames.push.apply(frames, previousStack);
   return frames;
 });
 
