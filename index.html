@@ -413,7 +413,7 @@ print(new Error('Example').stack);</div>
 var original = Module.prototype.require;
 
 Module.prototype.require = function (path) {
-  var module = original(path);
+  var module = original.call(this, path);
 
   if (isCoreModule(path)) {
     patchAll(module, path);
